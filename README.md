@@ -2,7 +2,7 @@
 
 A job portal where employers post jobs and job seekers apply for them.
 
-🔗 Live Demo:
+🔗 Live Demo: https://vasanth-vks23.github.io/techhire/
 
 ---
 
