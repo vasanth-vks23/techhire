@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TechHire — Job Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #09090E;
+  --bg2:     #111118;
+  --bg3:     #18181F;
+  --bg4:     #1F1F28;
+  --border:  #2A2A35;
+  --border2: #38384A;
+  --text:    #F0F0F5;
+  --muted:   #8888A0;
+  --faint:   #44445A;
+  --green:   #00C896;
+  --green2:  #00A07A;
+  --gbg:     rgba(0,200,150,0.08);
+  --gborder: rgba(0,200,150,0.2);
+  --amber:   #F5A623;
+  --abg:     rgba(245,166,35,0.08);
+  --blue:    #4A9EFF;
+  --bbg:     rgba(74,158,255,0.08);
+  --rose:    #FF6B7A;
+  --rbg:     rgba(255,107,122,0.08);
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{font-family:'Outfit',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+::-webkit-scrollbar{width:5px;}::-webkit-scrollbar-track{background:var(--bg);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px;}
+input::placeholder{color:var(--faint);}select option{background:var(--bg2);color:var(--text);}
+
+/* ── UTILS ── */
+.hidden{display:none!important;}
+.mono{font-family:'DM Mono',monospace;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:28px;right:28px;z-index:9999;background:var(--bg2);border:1px solid var(--border2);color:var(--text);padding:13px 20px;border-radius:10px;font-size:13px;font-weight:500;display:flex;align-items:center;gap:10px;box-shadow:0 16px 48px rgba(0,0,0,.6);opacity:0;pointer-events:none;transform:translateY(10px);transition:all .3s cubic-bezier(.34,1.56,.64,1);max-width:320px;}
+#toast.show{opacity:1;pointer-events:auto;transform:translateY(0);}
+.toast-dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex-shrink:0;}
+.toast-dot.err{background:var(--rose);}
+
+/* ── LANDING ── */
+#landingPage{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;position:relative;overflow:hidden;}
+#landingPage::before{content:'';position:absolute;top:-120px;left:50%;transform:translateX(-50%);width:700px;height:400px;background:radial-gradient(ellipse,rgba(0,200,150,.1) 0%,transparent 70%);pointer-events:none;}
+.landing-logo{display:flex;align-items:center;gap:14px;margin-bottom:48px;}
+.logo-mark{width:48px;height:48px;background:var(--green);border-radius:12px;display:flex;align-items:center;justify-content:center;}
+.logo-mark svg{width:26px;height:26px;}
+.logo-text{font-size:30px;font-weight:800;letter-spacing:-1px;color:var(--text);}
+.logo-text span{color:var(--green);}
+.landing-title{font-size:clamp(32px,5vw,52px);font-weight:800;text-align:center;line-height:1.1;letter-spacing:-1.5px;margin-bottom:14px;}
+.landing-title em{font-style:normal;color:var(--green);}
+.landing-sub{font-size:16px;color:var(--muted);text-align:center;margin-bottom:48px;line-height:1.6;}
+.role-cards{display:flex;gap:16px;flex-wrap:wrap;justify-content:center;margin-bottom:0;}
+.role-card{width:260px;background:var(--bg2);border:1px solid var(--border);border-radius:16px;padding:28px;cursor:pointer;transition:all .2s;text-align:center;position:relative;overflow:hidden;}
+.role-card::after{content:'';position:absolute;inset:0;opacity:0;transition:opacity .2s;border-radius:16px;}
+.role-card.seeker::after{background:radial-gradient(ellipse at top,var(--gbg),transparent);}
+.role-card.employer::after{background:radial-gradient(ellipse at top,var(--abg),transparent);}
+.role-card:hover{border-color:var(--border2);transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.role-card.seeker:hover{border-color:var(--gborder);}
+.role-card.employer:hover{border-color:rgba(245,166,35,.3);}
+.role-card:hover::after{opacity:1;}
+.role-icon{width:52px;height:52px;border-radius:14px;margin:0 auto 18px;display:flex;align-items:center;justify-content:center;position:relative;z-index:1;}
+.role-icon.g{background:var(--gbg);border:1px solid var(--gborder);}
+.role-icon.a{background:var(--abg);border:1px solid rgba(245,166,35,.2);}
+.role-card h3{font-size:17px;font-weight:800;margin-bottom:8px;position:relative;z-index:1;}
+.role-card p{font-size:13px;color:var(--muted);line-height:1.5;position:relative;z-index:1;}
+.role-card .rc-btn{display:inline-flex;align-items:center;gap:6px;margin-top:18px;padding:9px 18px;border-radius:8px;border:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;position:relative;z-index:1;}
+.role-card.seeker .rc-btn{background:var(--green);color:#000;}
+.role-card.employer .rc-btn{background:var(--amber);color:#000;}
+.role-card.seeker .rc-btn:hover{background:#00daa8;}
+.role-card.employer .rc-btn:hover{background:#ffb84d;}
+
+/* ── AUTH MODAL ── */
+.auth-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:200;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(6px);}
+.auth-overlay.open{display:flex;animation:fadeIn .2s ease;}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.auth-box{background:var(--bg2);border:1px solid var(--border2);border-radius:18px;padding:36px;width:100%;max-width:420px;animation:popIn .25s cubic-bezier(.34,1.56,.64,1);}
+@keyframes popIn{from{opacity:0;transform:scale(.95)translateY(8px)}to{opacity:1;transform:scale(1)translateY(0)}}
+.auth-head{text-align:center;margin-bottom:28px;}
+.auth-badge{display:inline-flex;align-items:center;gap:7px;padding:5px 14px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;margin-bottom:14px;}
+.auth-badge.seeker{background:var(--gbg);color:var(--green);border:1px solid var(--gborder);}
+.auth-badge.employer{background:var(--abg);color:var(--amber);border:1px solid rgba(245,166,35,.2);}
+.auth-head h2{font-size:22px;font-weight:800;letter-spacing:-.4px;margin-bottom:4px;}
+.auth-head p{font-size:13px;color:var(--muted);}
+.auth-tabs{display:flex;background:var(--bg3);border-radius:8px;padding:4px;margin-bottom:22px;}
+.auth-tab{flex:1;padding:8px;border:none;background:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:6px;transition:all .15s;}
+.auth-tab.active{background:var(--bg4);color:var(--text);}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.field input{width:100%;padding:11px 14px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;font-size:14px;outline:none;transition:border-color .15s,box-shadow .15s;}
+.field input:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,200,150,.12);}
+.auth-submit{width:100%;padding:13px;border-radius:9px;border:none;font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;cursor:pointer;margin-top:6px;letter-spacing:.03em;transition:all .15s;}
+.auth-submit.seeker{background:var(--green);color:#000;}
+.auth-submit.seeker:hover{background:#00daa8;}
+.auth-submit.employer{background:var(--amber);color:#000;}
+.auth-submit.employer:hover{background:#ffb84d;}
+.auth-close{position:absolute;top:14px;right:14px;width:30px;height:30px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.auth-close:hover{background:var(--bg4);color:var(--text);}
+.auth-box{position:relative;}
+
+/* ── NAV (logged in) ── */
+.nav{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--border);padding:0 28px;height:60px;display:flex;align-items:center;justify-content:space-between;}
+.nav-left{display:flex;align-items:center;gap:12px;}
+.nav-logo-sm{width:32px;height:32px;background:var(--green);border-radius:8px;display:flex;align-items:center;justify-content:center;}
+.nav-logo-sm svg{width:18px;height:18px;}
+.nav-brand{font-size:18px;font-weight:800;letter-spacing:-.5px;}
+.nav-brand span{color:var(--green);}
+.nav-right{display:flex;align-items:center;gap:10px;}
+.nav-user{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:8px;background:var(--bg2);border:1px solid var(--border);}
+.nav-user .avatar{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#000;}
+.nav-user .av-green{background:var(--green);}
+.nav-user .av-amber{background:var(--amber);}
+.nav-user .uname{font-size:12px;font-weight:600;color:var(--muted);}
+.nav-user .urole{font-size:10px;color:var(--faint);font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em;}
+.btn-logout{padding:7px 14px;border-radius:7px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.btn-logout:hover{border-color:var(--rose);color:var(--rose);background:var(--rbg);}
+
+/* ── MAIN APP ── */
+.app-wrap{max-width:1300px;margin:0 auto;padding:28px 28px 80px;}
+
+/* ── PAGE TABS ── */
+.page-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:28px;}
+.ptab{padding:12px 20px;border:none;border-bottom:2px solid transparent;background:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;display:flex;align-items:center;gap:7px;transition:all .15s;letter-spacing:.02em;white-space:nowrap;}
+.ptab .cnt{background:var(--bg3);border:1px solid var(--border);color:var(--faint);font-family:'DM Mono',monospace;font-size:10px;padding:1px 7px;border-radius:4px;transition:all .15s;}
+.ptab.active{color:var(--text);border-bottom-color:var(--green);}
+.ptab.active .cnt{background:var(--gbg);border-color:var(--gborder);color:var(--green);}
+.ptab:hover:not(.active){color:var(--text);}
+
+/* ── SECTION HEADER ── */
+.sec-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;flex-wrap:wrap;gap:12px;}
+.sec-title{font-size:20px;font-weight:800;letter-spacing:-.3px;}
+.btn-primary{display:inline-flex;align-items:center;gap:7px;padding:10px 20px;border-radius:8px;border:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .15s;letter-spacing:.03em;}
+.btn-green{background:var(--green);color:#000;}
+.btn-green:hover{background:#00daa8;transform:translateY(-1px);}
+.btn-amber{background:var(--amber);color:#000;}
+.btn-amber:hover{background:#ffb84d;transform:translateY(-1px);}
+
+/* ── SEARCH + FILTER BAR ── */
+.toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:22px;}
+.search-box{flex:1;min-width:200px;display:flex;align-items:center;gap:0;background:var(--bg2);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .15s;}
+.search-box:focus-within{border-color:var(--green);}
+.search-box svg{margin-left:12px;flex-shrink:0;color:var(--faint);}
+.search-box input{flex:1;background:none;border:none;outline:none;padding:10px 12px;font-family:'Outfit',sans-serif;font-size:13px;color:var(--text);}
+.chips{display:flex;gap:6px;flex-wrap:wrap;}
+.chip{padding:7px 14px;border-radius:6px;border:1px solid var(--border);background:var(--bg2);color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.chip:hover{border-color:var(--border2);color:var(--text);}
+.chip.active{background:var(--gbg);border-color:var(--gborder);color:var(--green);}
+.res-count{font-family:'DM Mono',monospace;font-size:11px;color:var(--faint);margin-left:auto;}
+
+/* ── JOB GRID ── */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:16px;}
+
+/* ── JOB CARD ── */
+.jcard{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:22px;display:flex;flex-direction:column;transition:all .2s;animation:fadeUp .35s ease both;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.jcard:hover{border-color:var(--border2);transform:translateY(-2px);box-shadow:0 10px 40px rgba(0,0,0,.4);}
+.jcard-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
+.co-avatar{width:42px;height:42px;border-radius:10px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:var(--green);font-family:'DM Mono',monospace;}
+.type-pill{font-size:10px;font-weight:700;padding:4px 10px;border-radius:4px;letter-spacing:.06em;text-transform:uppercase;}
+.tp-ft{background:var(--gbg);color:var(--green);border:1px solid rgba(0,200,150,.2);}
+.tp-pt{background:var(--abg);color:var(--amber);border:1px solid rgba(245,166,35,.2);}
+.tp-ct{background:var(--bbg);color:var(--blue);border:1px solid rgba(74,158,255,.2);}
+.tp-in{background:var(--rbg);color:var(--rose);border:1px solid rgba(255,107,122,.2);}
+.jcard-title{font-size:15px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.3;}
+.jcard-co{font-size:13px;color:var(--muted);margin-bottom:12px;}
+.jcard-meta{display:flex;flex-wrap:wrap;gap:12px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--border);}
+.meta-it{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--faint);font-family:'DM Mono',monospace;}
+.jtags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px;flex:1;}
+.jtag{font-size:11px;padding:2px 8px;border-radius:4px;background:var(--bg3);color:var(--muted);border:1px solid var(--border);font-family:'DM Mono',monospace;}
+.apply-btn{width:100%;padding:10px;border-radius:8px;border:none;font-family:'Outfit',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .15s;}
+.ab-idle{background:var(--bg3);color:var(--text);border:1px solid var(--border2);}
+.ab-idle:hover{background:var(--green);color:#000;border-color:var(--green);}
+.ab-done{background:var(--gbg);color:var(--green);border:1px solid var(--gborder);cursor:default;}
+.ab-login{background:var(--bg3);color:var(--muted);border:1px solid var(--border);cursor:pointer;}
+.ab-login:hover{border-color:var(--green);color:var(--green);}
+
+/* ── EMPLOYER: POST JOB FORM ── */
+.post-wrap{max-width:640px;}
+.form-card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:28px;}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:540px){.form-grid{grid-template-columns:1fr;}}
+.form-field{margin-bottom:0;}
+.form-field.full{grid-column:1/-1;}
+.form-field label{display:block;font-size:11px;font-weight:700;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;}
+.form-field input,.form-field select,.form-field textarea{width:100%;padding:10px 13px;background:var(--bg3);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border-color .15s,box-shadow .15s;}
+.form-field textarea{resize:vertical;min-height:80px;}
+.form-field input:focus,.form-field select:focus,.form-field textarea:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(0,200,150,.1);}
+
+/* ── APPLICANTS TABLE ── */
+.emp-jobs{display:flex;flex-direction:column;gap:14px;}
+.emp-job-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;transition:border-color .2s;}
+.emp-job-card:hover{border-color:var(--border2);}
+.ejc-head{padding:18px 22px;display:flex;align-items:center;justify-content:space-between;cursor:pointer;gap:12px;flex-wrap:wrap;}
+.ejc-info{display:flex;align-items:center;gap:12px;}
+.ejc-title{font-size:15px;font-weight:700;}
+.ejc-sub{font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;}
+.ejc-meta{display:flex;align-items:center;gap:10px;}
+.app-badge{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:6px;font-size:11px;font-weight:700;font-family:'DM Mono',monospace;letter-spacing:.04em;}
+.app-badge.has{background:var(--gbg);color:var(--green);border:1px solid var(--gborder);}
+.app-badge.none{background:var(--bg3);color:var(--faint);border:1px solid var(--border);}
+.chevron{color:var(--faint);transition:transform .2s;font-size:12px;}
+.chevron.open{transform:rotate(180deg);}
+.ejc-body{border-top:1px solid var(--border);display:none;}
+.ejc-body.open{display:block;}
+.app-table{width:100%;border-collapse:collapse;}
+.app-table th{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--faint);padding:10px 22px;text-align:left;border-bottom:1px solid var(--border);}
+.app-table td{padding:12px 22px;font-size:13px;border-bottom:1px solid var(--border);color:var(--muted);}
+.app-table tr:last-child td{border-bottom:none;}
+.app-table td.name{color:var(--text);font-weight:600;}
+.no-apps{padding:28px 22px;text-align:center;color:var(--faint);font-size:13px;}
+
+/* ── MY APPLICATIONS ── */
+.my-apps{display:flex;flex-direction:column;gap:10px;}
+.my-app-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;transition:border-color .2s;animation:fadeUp .3s ease both;}
+.my-app-card:hover{border-color:var(--border2);}
+.mac-left{display:flex;align-items:center;gap:12px;}
+.mac-av{width:40px;height:40px;border-radius:9px;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;color:var(--green);font-family:'DM Mono',monospace;flex-shrink:0;}
+.mac-title{font-size:14px;font-weight:700;margin-bottom:2px;}
+.mac-sub{font-size:11px;color:var(--faint);font-family:'DM Mono',monospace;}
+.mac-right{display:flex;align-items:center;gap:8px;}
+.status-pill{font-size:10px;font-weight:700;padding:4px 12px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;font-family:'DM Mono',monospace;background:var(--gbg);color:var(--green);border:1px solid var(--gborder);}
+.wd-btn{padding:6px 12px;border-radius:7px;border:1px solid rgba(255,107,122,.25);background:var(--rbg);color:var(--rose);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.wd-btn:hover{background:rgba(255,107,122,.18);border-color:rgba(255,107,122,.5);}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:70px 20px;}
+.empty-icon{font-size:42px;opacity:.3;margin-bottom:14px;}
+.empty-state h3{font-size:17px;font-weight:700;color:var(--muted);margin-bottom:8px;}
+.empty-state p{font-size:13px;color:var(--faint);}
+
+/* ── MODAL (post job) ── */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(4px);}
+.overlay.open{display:flex;animation:fadeIn .2s ease;}
+.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:16px;padding:30px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;position:relative;animation:popIn .25s cubic-bezier(.34,1.56,.64,1);}
+.modal-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:22px;}
+.modal-h h2{font-size:19px;font-weight:800;letter-spacing:-.3px;}
+.m-close{width:30px;height:30px;border-radius:7px;background:var(--bg3);border:1px solid var(--border);color:var(--muted);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.m-close:hover{background:var(--bg4);color:var(--text);}
+</style>
+</head>
+<body>
+
+<!-- TOAST -->
+<div id="toast"><div class="toast-dot" id="tDot"></div><span id="tMsg"></span></div>
+
+<!-- ════════════════════════════════════════
+     LANDING PAGE
+════════════════════════════════════════ -->
+<div id="landingPage">
+  <div class="landing-logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round">
+        <rect x="2" y="7" width="20" height="14" rx="2"/>
+        <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+        <line x1="12" y1="12" x2="12" y2="17"/><line x1="9" y1="14.5" x2="15" y2="14.5"/>
+      </svg>
+    </div>
+    <span class="logo-text">Tech<span>Hire</span></span>
+  </div>
+  <h1 class="landing-title">One Platform.<br><em>Two Worlds.</em></h1>
+  <p class="landing-sub">Find your dream job — or hire your next tech star.<br>Create a free account to get started.</p>
+  <div class="role-cards">
+    <div class="role-card seeker" onclick="openAuth('seeker')">
+      <div class="role-icon g">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#00C896" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      </div>
+      <h3>Job Seeker</h3>
+      <p>Browse jobs, apply with one click, and track all your applications in one place.</p>
+      <button class="rc-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        Get Started
+      </button>
+    </div>
+    <div class="role-card employer" onclick="openAuth('employer')">
+      <div class="role-icon a">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#F5A623" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      </div>
+      <h3>Employer</h3>
+      <p>Post job listings, review applicants, and manage all your open positions easily.</p>
+      <button class="rc-btn">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        Get Started
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     AUTH MODAL
+════════════════════════════════════════ -->
+<div class="auth-overlay" id="authOverlay" onclick="if(event.target===this)closeAuth()">
+  <div class="auth-box">
+    <button class="auth-close" onclick="closeAuth()">✕</button>
+    <div class="auth-head">
+      <div class="auth-badge" id="authBadge"></div>
+      <h2 id="authTitle"></h2>
+      <p id="authSub"></p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="atLogin" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" id="atRegister" onclick="switchAuthTab('register')">Register</button>
+    </div>
+    <!-- Login form -->
+    <div id="loginForm">
+      <div class="field"><label>Email</label><input type="email" id="lEmail" placeholder="you@example.com"></div>
+      <div class="field"><label>Password</label><input type="password" id="lPass" placeholder="••••••••"></div>
+      <button class="auth-submit" id="loginBtn" onclick="doLogin()">Sign In →</button>
+    </div>
+    <!-- Register form -->
+    <div id="registerForm" style="display:none">
+      <div class="field"><label>Full Name</label><input type="text" id="rName" placeholder="John Doe"></div>
+      <div class="field"><label>Email</label><input type="email" id="rEmail" placeholder="you@example.com"></div>
+      <div id="rCompanyWrap" class="field hidden"><label>Company Name</label><input type="text" id="rCompany" placeholder="Acme Corp"></div>
+      <div class="field"><label>Password</label><input type="password" id="rPass" placeholder="Min 6 characters"></div>
+      <div class="field"><label>Confirm Password</label><input type="password" id="rPass2" placeholder="Repeat password"></div>
+      <button class="auth-submit" id="regBtn" onclick="doRegister()">Create Account →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MAIN APP (shown after login)
+════════════════════════════════════════ -->
+<div id="mainApp" class="hidden">
+  <!-- NAV -->
+  <nav class="nav">
+    <div class="nav-left">
+      <div class="nav-logo-sm">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#000" stroke-width="2.5" stroke-linecap="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+      </div>
+      <span class="nav-brand">Tech<span>Hire</span></span>
+    </div>
+    <div class="nav-right">
+      <div class="nav-user">
+        <div class="avatar" id="navAvatar"></div>
+        <div>
+          <div class="uname" id="navName"></div>
+          <div class="urole" id="navRole"></div>
+        </div>
+      </div>
+      <button class="btn-logout" onclick="logout()">Sign Out</button>
+    </div>
+  </nav>
+
+  <!-- SEEKER VIEW -->
+  <div id="seekerApp" class="hidden">
+    <div class="app-wrap">
+      <div class="page-tabs" id="seekerTabs">
+        <button class="ptab active" id="sTab1" onclick="sSwitchTab('browse')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Browse Jobs
+          <span class="cnt" id="sJobCnt">0</span>
+        </button>
+        <button class="ptab" id="sTab2" onclick="sSwitchTab('applied')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          My Applications
+          <span class="cnt" id="sAppCnt">0</span>
+        </button>
+      </div>
+
+      <!-- BROWSE -->
+      <div id="sPanel1">
+        <div class="toolbar">
+          <div class="search-box">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            <input id="sSearch" type="text" placeholder="Search jobs, companies…" oninput="renderJobs()">
+          </div>
+          <div class="chips">
+            <button class="chip active" onclick="setJobType('All',this)">All</button>
+            <button class="chip" onclick="setJobType('Full-time',this)">Full-time</button>
+            <button class="chip" onclick="setJobType('Part-time',this)">Part-time</button>
+            <button class="chip" onclick="setJobType('Contract',this)">Contract</button>
+            <button class="chip" onclick="setJobType('Internship',this)">Internship</button>
+          </div>
+          <span class="res-count"><span id="sResNum">0</span> jobs</span>
+        </div>
+        <div id="sJobGrid" class="grid"></div>
+        <div id="sEmpty" class="empty-state hidden">
+          <div class="empty-icon">🔍</div>
+          <h3>No jobs found</h3>
+          <p>Try a different search or filter — or check back soon</p>
+        </div>
+        <div id="sNoJobs" class="empty-state hidden">
+          <div class="empty-icon">📭</div>
+          <h3>No jobs posted yet</h3>
+          <p>Employers haven't posted any jobs yet. Check back soon!</p>
+        </div>
+      </div>
+
+      <!-- MY APPLICATIONS -->
+      <div id="sPanel2" class="hidden">
+        <div class="sec-head"><span class="sec-title">My Applications</span></div>
+        <div id="myAppsWrap" class="my-apps"></div>
+        <div id="sAppsEmpty" class="empty-state hidden">
+          <div class="empty-icon">📋</div>
+          <h3>No applications yet</h3>
+          <p>Browse jobs and hit Quick Apply to get started</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EMPLOYER VIEW -->
+  <div id="employerApp" class="hidden">
+    <div class="app-wrap">
+      <div class="page-tabs">
+        <button class="ptab active" id="eTab1" onclick="eSwitchTab('jobs')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/></svg>
+          My Job Listings
+          <span class="cnt" id="eJobCnt">0</span>
+        </button>
+        <button class="ptab" id="eTab2" onclick="eSwitchTab('post')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Post a Job
+        </button>
+      </div>
+
+      <!-- MY LISTINGS -->
+      <div id="ePanel1">
+        <div id="empJobsWrap" class="emp-jobs"></div>
+        <div id="eEmpty" class="empty-state hidden">
+          <div class="empty-icon">📋</div>
+          <h3>No jobs posted yet</h3>
+          <p>Switch to "Post a Job" to create your first listing</p>
+        </div>
+      </div>
+
+      <!-- POST JOB -->
+      <div id="ePanel2" class="hidden">
+        <div class="sec-head"><span class="sec-title">Post a New Job</span></div>
+        <div class="post-wrap">
+          <div class="form-card">
+            <div class="form-grid">
+              <div class="form-field full"><label>Job Title *</label><input id="pTitle" placeholder="e.g. Senior Frontend Engineer"></div>
+              <div class="form-field"><label>Location *</label><input id="pLocation" placeholder="e.g. Remote · New York"></div>
+              <div class="form-field"><label>Job Type</label>
+                <select id="pType">
+                  <option>Full-time</option><option>Part-time</option><option>Contract</option><option>Internship</option>
+                </select>
+              </div>
+              <div class="form-field"><label>Salary / CTC</label><input id="pSalary" placeholder="e.g. ₹8 LPA – ₹14 LPA"></div>
+              <div class="form-field"><label>Tags <span style="text-transform:none;font-weight:400;color:var(--faint)">(comma sep.)</span></label><input id="pTags" placeholder="React, Node.js, AWS"></div>
+              <div class="form-field full"><label>Job Description</label><textarea id="pDesc" placeholder="Describe the role, responsibilities, requirements…"></textarea></div>
+              <div class="form-field full">
+                <button class="btn-primary btn-amber" style="width:100%;justify-content:center;padding:13px;" onclick="postJob()">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  Post Job
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ════════════════════════════════════════
+   STORAGE HELPERS
+════════════════════════════════════════ */
+const DB = {
+  get: k => JSON.parse(localStorage.getItem('th_' + k) || 'null'),
+  set: (k, v) => localStorage.setItem('th_' + k, JSON.stringify(v)),
+};
+
+function getUsers()   { return DB.get('users')   || []; }
+function getJobs()    { return DB.get('jobs')     || []; }
+function getApps()    { return DB.get('apps')     || []; }
+function saveUsers(u) { DB.set('users', u); }
+function saveJobs(j)  { DB.set('jobs',  j); }
+function saveApps(a)  { DB.set('apps',  a); }
+
+let currentUser = null;
+let jobTypeFilter = 'All';
+
+/* ════════════════════════════════════════
+   TOAST
+════════════════════════════════════════ */
+let tTimer;
+function toast(msg, err = false) {
+  clearTimeout(tTimer);
+  document.getElementById('tMsg').textContent = msg;
+  document.getElementById('tDot').className = 'toast-dot' + (err ? ' err' : '');
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  tTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+/* ════════════════════════════════════════
+   AUTH UI
+════════════════════════════════════════ */
+let authRole = 'seeker';
+
+function openAuth(role) {
+  authRole = role;
+  const isSeeker = role === 'seeker';
+  const badge = document.getElementById('authBadge');
+  badge.className = 'auth-badge ' + role;
+  badge.textContent = isSeeker ? '👤 Job Seeker' : '🏢 Employer';
+  document.getElementById('authTitle').textContent = isSeeker ? 'Welcome, Job Seeker' : 'Welcome, Employer';
+  document.getElementById('authSub').textContent   = isSeeker ? 'Find your next opportunity' : 'Hire top tech talent';
+  document.getElementById('loginBtn').className  = 'auth-submit ' + role;
+  document.getElementById('regBtn').className    = 'auth-submit ' + role;
+  document.getElementById('rCompanyWrap').classList.toggle('hidden', isSeeker);
+  switchAuthTab('login');
+  document.getElementById('authOverlay').classList.add('open');
+}
+function closeAuth() { document.getElementById('authOverlay').classList.remove('open'); }
+
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('atLogin').classList.toggle('active', isLogin);
+  document.getElementById('atRegister').classList.toggle('active', !isLogin);
+  document.getElementById('loginForm').style.display    = isLogin ? 'block' : 'none';
+  document.getElementById('registerForm').style.display = isLogin ? 'none'  : 'block';
+}
+
+/* ════════════════════════════════════════
+   REGISTER
+════════════════════════════════════════ */
+function doRegister() {
+  const name    = document.getElementById('rName').value.trim();
+  const email   = document.getElementById('rEmail').value.trim().toLowerCase();
+  const company = document.getElementById('rCompany').value.trim();
+  const pass    = document.getElementById('rPass').value;
+  const pass2   = document.getElementById('rPass2').value;
+
+  if (!name || !email) { toast('Name and email are required', true); return; }
+  if (authRole === 'employer' && !company) { toast('Company name is required', true); return; }
+  if (!pass || pass.length < 6) { toast('Password must be at least 6 characters', true); return; }
+  if (pass !== pass2) { toast('Passwords do not match', true); return; }
+
+  const users = getUsers();
+  if (users.find(u => u.email === email)) { toast('Email already registered', true); return; }
+
+  const user = { id: Date.now().toString(), name, email, password: pass, role: authRole, company: company || '' };
+  users.push(user);
+  saveUsers(users);
+
+  closeAuth();
+  loginUser(user);
+  toast(`Welcome, ${name}! Account created ✓`);
+}
+
+/* ════════════════════════════════════════
+   LOGIN
+════════════════════════════════════════ */
+function doLogin() {
+  const email = document.getElementById('lEmail').value.trim().toLowerCase();
+  const pass  = document.getElementById('lPass').value;
+  if (!email || !pass) { toast('Please enter email and password', true); return; }
+
+  const users = getUsers();
+  const user  = users.find(u => u.email === email && u.password === pass);
+  if (!user) { toast('Invalid email or password', true); return; }
+  if (user.role !== authRole) {
+    toast(`This account is registered as a ${user.role}. Please select the correct role.`, true);
+    return;
+  }
+
+  closeAuth();
+  loginUser(user);
+  toast(`Welcome back, ${user.name}!`);
+}
+
+function loginUser(user) {
+  currentUser = user;
+  DB.set('session', user.id);
+
+  // Clear form fields
+  ['lEmail','lPass','rName','rEmail','rCompany','rPass','rPass2'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value = '';
+  });
+
+  document.getElementById('landingPage').classList.add('hidden');
+  document.getElementById('mainApp').classList.remove('hidden');
+
+  // Nav
+  const isSeeker = user.role === 'seeker';
+  const av = document.getElementById('navAvatar');
+  av.textContent = user.name[0].toUpperCase();
+  av.className   = 'avatar ' + (isSeeker ? 'av-green' : 'av-amber');
+  document.getElementById('navName').textContent = user.name;
+  document.getElementById('navRole').textContent = isSeeker ? 'Job Seeker' : (user.company || 'Employer');
+
+  if (isSeeker) {
+    document.getElementById('seekerApp').classList.remove('hidden');
+    document.getElementById('employerApp').classList.add('hidden');
+    jobTypeFilter = 'All';
+    sSwitchTab('browse');
+  } else {
+    document.getElementById('employerApp').classList.remove('hidden');
+    document.getElementById('seekerApp').classList.add('hidden');
+    eSwitchTab('jobs');
+  }
+}
+
+function logout() {
+  currentUser = null;
+  DB.set('session', null);
+  document.getElementById('mainApp').classList.add('hidden');
+  document.getElementById('seekerApp').classList.add('hidden');
+  document.getElementById('employerApp').classList.add('hidden');
+  document.getElementById('landingPage').classList.remove('hidden');
+  toast('Signed out successfully');
+}
+
+/* ════════════════════════════════════════
+   SEEKER TABS
+════════════════════════════════════════ */
+function sSwitchTab(tab) {
+  const isBrowse = tab === 'browse';
+  document.getElementById('sTab1').classList.toggle('active', isBrowse);
+  document.getElementById('sTab2').classList.toggle('active', !isBrowse);
+  document.getElementById('sPanel1').classList.toggle('hidden', !isBrowse);
+  document.getElementById('sPanel2').classList.toggle('hidden',  isBrowse);
+  if (isBrowse) renderJobs();
+  else renderMyApps();
+}
+
+function setJobType(type, el) {
+  jobTypeFilter = type;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  renderJobs();
+}
+
+/* ════════════════════════════════════════
+   RENDER JOBS (seeker)
+════════════════════════════════════════ */
+const typeClass = { 'Full-time':'tp-ft','Part-time':'tp-pt','Contract':'tp-ct','Internship':'tp-in' };
+
+function renderJobs() {
+  if (!currentUser) return;
+  const q     = (document.getElementById('sSearch')?.value || '').toLowerCase().trim();
+  const jobs  = getJobs();
+  const apps  = getApps();
+  const myApps = new Set(apps.filter(a => a.seekerId === currentUser.id).map(a => a.jobId));
+
+  document.getElementById('sJobCnt').textContent = jobs.length;
+  document.getElementById('sAppCnt').textContent = myApps.size;
+
+  const filtered = jobs.filter(j =>
+    (!q || j.title.toLowerCase().includes(q) || j.company.toLowerCase().includes(q)) &&
+    (jobTypeFilter === 'All' || j.type === jobTypeFilter)
+  );
+
+  document.getElementById('sResNum').textContent = filtered.length;
+
+  const grid   = document.getElementById('sJobGrid');
+  const empty  = document.getElementById('sEmpty');
+  const noJobs = document.getElementById('sNoJobs');
+
+  if (jobs.length === 0) {
+    grid.innerHTML = '';
+    grid.classList.add('hidden');
+    empty.classList.add('hidden');
+    noJobs.classList.remove('hidden');
+    return;
+  }
+  noJobs.classList.add('hidden');
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    grid.classList.add('hidden');
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  grid.classList.remove('hidden');
+
+  grid.innerHTML = filtered.map((j, i) => {
+    const applied = myApps.has(j.id);
+    const tc = typeClass[j.type] || 'tp-ft';
+    const tags = (j.tags||[]).map(t => `<span class="jtag">${t}</span>`).join('');
+    return `
+    <div class="jcard" style="animation-delay:${i*35}ms">
+      <div class="jcard-top">
+        <div class="co-avatar">${j.company[0].toUpperCase()}</div>
+        <span class="type-pill ${tc}">${j.type}</span>
+      </div>
+      <div class="jcard-title">${j.title}</div>
+      <div class="jcard-co">${j.company}</div>
+      <div class="jcard-meta">
+        <span class="meta-it">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          ${j.location}
+        </span>
+        ${j.salary?`<span class="meta-it" style="font-size:12px">₹ ${j.salary}</span>`:''}
+      </div>
+      ${tags ? `<div class="jtags">${tags}</div>` : '<div style="flex:1"></div>'}
+      <button class="apply-btn ${applied?'ab-done':'ab-idle'}" onclick="applyJob('${j.id}')" ${applied?'disabled':''}>
+        ${applied
+          ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg> Applied`
+          : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg> Quick Apply`
+        }
+      </button>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════
+   APPLY
+════════════════════════════════════════ */
+function applyJob(jobId) {
+  if (!currentUser) return;
+  const apps = getApps();
+  if (apps.find(a => a.seekerId === currentUser.id && a.jobId === jobId)) return;
+  const job = getJobs().find(j => j.id === jobId);
+  apps.push({
+    id: Date.now().toString(),
+    seekerId:    currentUser.id,
+    seekerName:  currentUser.name,
+    seekerEmail: currentUser.email,
+    jobId:       job.id,
+    jobTitle:    job.title,
+    company:     job.company,
+    employerId:  job.employerId,
+    location:    job.location,
+    type:        job.type,
+    salary:      job.salary,
+    appliedAt:   new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})
+  });
+  saveApps(apps);
+  document.getElementById('sAppCnt').textContent =
+    apps.filter(a => a.seekerId === currentUser.id).length;
+  renderJobs();
+  toast(`Applied to ${job.title} at ${job.company} ✓`);
+}
+
+/* ════════════════════════════════════════
+   MY APPLICATIONS
+════════════════════════════════════════ */
+function renderMyApps() {
+  if (!currentUser) return;
+  const apps   = getApps().filter(a => a.seekerId === currentUser.id);
+  const wrap   = document.getElementById('myAppsWrap');
+  const empty  = document.getElementById('sAppsEmpty');
+  document.getElementById('sAppCnt').textContent = apps.length;
+
+  if (!apps.length) {
+    wrap.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+  wrap.innerHTML = apps.map((a,i) => `
+    <div class="my-app-card" style="animation-delay:${i*35}ms">
+      <div class="mac-left">
+        <div class="mac-av">${a.company[0].toUpperCase()}</div>
+        <div>
+          <div class="mac-title">${a.jobTitle}</div>
+          <div class="mac-sub">${a.company} · ${a.location}${a.salary?' · ₹'+a.salary:''}</div>
+          <div class="mac-sub" style="margin-top:2px;color:var(--faint)">Applied ${a.appliedAt}</div>
+        </div>
+      </div>
+      <div class="mac-right">
+        <span class="status-pill">Applied</span>
+        <button class="wd-btn" onclick="withdrawApp('${a.id}')">Withdraw</button>
+      </div>
+    </div>`).join('');
+}
+
+function withdrawApp(appId) {
+  let apps = getApps();
+  apps = apps.filter(a => a.id !== appId);
+  saveApps(apps);
+  renderMyApps();
+  renderJobs();
+  toast('Application withdrawn');
+}
+
+/* ════════════════════════════════════════
+   EMPLOYER TABS
+════════════════════════════════════════ */
+function eSwitchTab(tab) {
+  const isJobs = tab === 'jobs';
+  document.getElementById('eTab1').classList.toggle('active',  isJobs);
+  document.getElementById('eTab2').classList.toggle('active', !isJobs);
+  document.getElementById('ePanel1').classList.toggle('hidden', !isJobs);
+  document.getElementById('ePanel2').classList.toggle('hidden',  isJobs);
+  if (isJobs) renderEmpJobs();
+}
+
+/* ════════════════════════════════════════
+   RENDER EMPLOYER JOBS + APPLICANTS
+════════════════════════════════════════ */
+function renderEmpJobs() {
+  if (!currentUser) return;
+  const jobs = getJobs().filter(j => j.employerId === currentUser.id);
+  const apps  = getApps();
+  const wrap  = document.getElementById('empJobsWrap');
+  const empty = document.getElementById('eEmpty');
+
+  document.getElementById('eJobCnt').textContent = jobs.length;
+
+  if (!jobs.length) {
+    wrap.innerHTML = '';
+    empty.classList.remove('hidden');
+    return;
+  }
+  empty.classList.add('hidden');
+
+  wrap.innerHTML = jobs.map((j, i) => {
+    const jobApps = apps.filter(a => a.jobId === j.id);
+    const tc = typeClass[j.type] || 'tp-ft';
+    const rows = jobApps.length
+      ? jobApps.map(a => `
+          <tr>
+            <td class="name">${a.seekerName}</td>
+            <td>${a.seekerEmail}</td>
+            <td>${a.appliedAt}</td>
+          </tr>`).join('')
+      : `<tr><td colspan="3" class="no-apps">No applicants yet for this role</td></tr>`;
+
+    return `
+    <div class="emp-job-card" style="animation:fadeUp .35s ease ${i*40}ms both">
+      <div class="ejc-head" onclick="toggleEjc('ejc${i}')">
+        <div class="ejc-info">
+          <div class="co-avatar">${j.company[0].toUpperCase()}</div>
+          <div>
+            <div class="ejc-title">${j.title}</div>
+            <div class="ejc-sub">${j.location} · ${j.type}${j.salary?' · ₹'+j.salary:''}</div>
+          </div>
+        </div>
+        <div class="ejc-meta">
+          <span class="type-pill ${tc}">${j.type}</span>
+          <span class="app-badge ${jobApps.length?'has':'none'}">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            ${jobApps.length} applicant${jobApps.length!==1?'s':''}
+          </span>
+          <span class="chevron" id="chev${i}">▼</span>
+        </div>
+      </div>
+      <div class="ejc-body" id="ejc${i}">
+        <table class="app-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Applied</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleEjc(id) {
+  const body = document.getElementById(id);
+  const idx  = id.replace('ejc','');
+  const chev = document.getElementById('chev'+idx);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chev.classList.toggle('open', !isOpen);
+}
+
+/* ════════════════════════════════════════
+   POST JOB
+════════════════════════════════════════ */
+function postJob() {
+  if (!currentUser) return;
+  const title    = document.getElementById('pTitle').value.trim();
+  const location = document.getElementById('pLocation').value.trim();
+  if (!title || !location) { toast('Title and Location are required', true); return; }
+
+  const tags = document.getElementById('pTags').value.split(',').map(t=>t.trim()).filter(Boolean);
+  const jobs = getJobs();
+  jobs.unshift({
+    id:         Date.now().toString(),
+    employerId: currentUser.id,
+    company:    currentUser.company || currentUser.name,
+    title,
+    location,
+    type:     document.getElementById('pType').value,
+    salary:   document.getElementById('pSalary').value.trim(),
+    desc:     document.getElementById('pDesc').value.trim(),
+    tags,
+    postedAt: new Date().toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'})
+  });
+  saveJobs(jobs);
+
+  // Clear form
+  ['pTitle','pLocation','pSalary','pTags','pDesc'].forEach(id => document.getElementById(id).value = '');
+
+  eSwitchTab('jobs');
+  toast(`"${title}" posted successfully ✓`);
+}
+
+/* ════════════════════════════════════════
+   AUTO-LOGIN FROM SESSION
+════════════════════════════════════════ */
+(function init() {
+  const sid = DB.get('session');
+  if (sid) {
+    const user = getUsers().find(u => u.id === sid);
+    if (user) { loginUser(user); return; }
+  }
+})();
+</script>
+</body>
+</html>
